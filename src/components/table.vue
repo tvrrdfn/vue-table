@@ -85,7 +85,7 @@
                 nextIndex: null, //联动层索引
                 resizeOptions: { // 拖拽配置
                     distance: 10,
-                    minWidth: 20
+                    minWidth: 40
                 }
             }
         },
@@ -193,9 +193,9 @@
                         outline: 1px solid red
 
                     &-content
+                        @extend %text-ellipsis
                         flex: 1
-                        color: #757575;
-                        @extend %text-ellipsis;
+                        color: #757575
 
         &__tbody
             &__tr
@@ -208,6 +208,7 @@
                     border-top: 1px solid #eaeff0;
                     border-right: 1px solid #e0e0e0;
                     color: #757575;
+                    @extend %text-ellipsis
 
                     &:last-child
                         border-right: none

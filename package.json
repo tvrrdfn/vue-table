@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "babel-preset-stage-2": "^6.24.1",
+    "pug": "^2.0.0-rc.4",
     "vue": "^2.5.11"
   },
   "browserslist": [

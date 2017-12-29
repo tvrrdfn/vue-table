@@ -1,7 +1,7 @@
 <template lang="pug">
     #app 
         v-table
-        v-table
+        // v-table
 </template>
 
 <script>

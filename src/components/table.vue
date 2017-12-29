@@ -1,50 +1,98 @@
 <template lang="pug">
     .v-table
-        .v-table__thead
-            .v-table__thead__tr
-                .v-table__thead__tr-th(
-                    v-for="(th, index) in theadList"
-                    :class="{'asc': th.sort === 'asc', 'desc': th.sort === 'desc'}"
-                    :style="{'width': th.width + 'px'}"
-                )
-                    .v-table__thead__tr-th-content {{th.name}}
-                    .v-table__thead__tr-th-resize(
-                        @mousedown.stop="onMousedown($event, index)"
+        .v-table__wrap
+            .v-table__thead
+                .v-table__thead__tr
+                    .v-table__thead__tr-th(
+                        v-for="(th, index) in theadList"
+                        :class="directionCls(index)"
+                        :style="{'width': th.width + 'px'}"
+                        @click="onSort(index)"
                     )
-                    
-        .v-table__tbody
-            .v-table__tbody__tr(
-                v-for="tr in tbodyList"
-            )
-                .v-table__tbody__tr-td(
-                    v-for="(td, index) in tr"
-                    :style="{'width': theadList[index].width + 'px'}"
-                ) {{td}}
+                        .v-table__thead__tr-th-content {{th.name}}
+                        .v-table__thead__tr-th-resize(
+                            @mousedown.stop="onMousedown($event, index)"
+                        )
+                        
+            .v-table__tbody
+                .v-table__tbody__tr(
+                    v-for="tr in paginationData"
+                )
+                    .v-table__tbody__tr-td(
+                        v-for="(td, index) in tr"
+                        :style="{'width': theadList[index].width + 'px'}"
+                    ) {{td}}
 
-        .v-table__tfooter
-            .v-table__tfooter__tr(
-                v-for="tr in footerList"
-            )
-                .v-table__tfooter__tr-th(
-                    v-for="(th, index) in tr"
-                    :style="{'width': theadList[index].width + 'px'}"
-                ) {{th}}
+            .v-table__tfooter
+                .v-table__tfooter__tr(
+                    v-for="tr in footerList"
+                )
+                    .v-table__tfooter__tr-th(
+                        v-for="(th, index) in tr"
+                        :style="{'width': theadList[index].width + 'px'}"
+                    ) {{th}}
 
-        .v-table__tpagination
+        pagination(
+            ref="pagination"
+            :data="tbodyList"
+            :currentPage="pagination.currentPage"
+            :pageLength="pagination.pageLength"
+            @change="onPaginationChange"
+        )
+        <!-- .v-table__tpagination
             button.prev &lt;
             ul
                 li
                     button 1
-            button.next &gt;
+            button.next &gt; -->
 
 </template>
 
 <script type="text/javascript">
-    import ResizeHandler from './resize';
-    import utils from './event.utils';
+    import pagination from './pagination/pagination.vue';
+    import ResizeHandler from './resize/resize';
+    import Sorter from './sorter/sorter';
+
+    function pluck(arr, attr) {
+        return arr.map(function (obj) {
+            return obj[attr];
+        });
+    }
+
+    function isEmptyArray(arr) {
+        return arr == null || arr.length === 0;
+    }
 
     export default {
         name: "vueTable",
+
+        props: {
+            // 排序参数,是二维数组,支持多列排序
+            orders: {
+                type: Array,
+                default() {
+                    return [[0, 'desc']];
+                }
+            },
+
+            features: {
+                type: Object,
+                default() {
+                    return {sortable: true}
+                }
+            },
+
+            // 分页对象
+            pagination: {
+                type: Object,
+                default() {
+                    return {
+                        currentPage: 1,
+                        pageLength: 3
+                    };
+                }
+            }
+        },
 
         data() {
             return {
@@ -52,26 +100,51 @@
                 theadList: [{
                     name: 'id',
                     width: 100,
-                    sort: 'asc'
+                    sort: 'asc',
+                    dataType:"NUMBER"
                 },{
                     name: 'name',
                     width: 100,
-                    sort: null
+                    sort: null,
+                    dataType:"STRING"
                 },{
                     name: 'sex',
                     width: 100,
-                    sort: null
+                    sort: null,
+                    dataType:"NUMBER"
                 },{
                     name: 'tel',
                     width: 100,
-                    sort: null
+                    sort: null,
+                    dataType:"NUMBER"
                 }],
 
                 // 表格内容列表
                 tbodyList: [
-                    [1,'a','1',1391313131],
-                    [2,'b','1',1391313131],
-                    [3,'c','0',1391313131]
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136],
+                    [1,'a','1',137],
+                    [2,'b','1',134],
+                    [3,'c','0',136]
                 ],
 
                 // 表格底部列表
@@ -86,11 +159,23 @@
                 resizeOptions: { // 拖拽配置
                     distance: 10,
                     minWidth: 40
-                }
+                },
+
+                // 排序相关设置
+                sorter: null, // 用来排序的实例对象
+                currentSortingColumn: { // 当前正在排序的列
+                    0: 'asc'
+                },
+
+                // 分页相关
+                paginationData: null // 分页后展示数据
             }
         },
 
         created() {
+            if(this.features.sortable){
+                this.initSorter();
+            }
         },
 
         mounted() {
@@ -101,6 +186,8 @@
             init() {
                 this.resizeHandler = new ResizeHandler(this, this.resizeOptions);
             },
+
+            /********** 拖拽相关 **********/
 
             onMousedown(event, index) {
                 this.dragIndex = index;
@@ -124,7 +211,50 @@
 
             dragend(event) {
                 console.log('dragend')
-            }
+            },
+
+
+            /********** 排序相关 **********/
+
+            initSorter() {
+                this.sorter = new Sorter(this.tbodyList, this.orders,
+                    pluck(this.theadList, 'comparator'), pluck(this.theadList, 'dataType'));
+
+                if (!isEmptyArray(this.orders)) {
+                    let last = this.orders[this.orders.length - 1],
+                        index = last[0],
+                        direction = last[1];
+                    this.currentSortingColumn = {[index]: direction};
+                }
+            },
+
+            onSort(index) {
+                if(!this.features.sortable) return;
+                var opp = this.opposites(this.currentSortingColumn[index]);
+                this.currentSortingColumn = {[index]: opp};
+                this.sorter.sort(index, opp);
+            },
+
+            opposites(direction) {
+                var mapper = {'desc': 'asc', 'asc': 'desc'};
+                return direction ? mapper[direction] : 'asc';
+            },
+
+            directionCls(index) {
+                if(!this.features.sortable) return "no_sortable";
+                return this.currentSortingColumn[index];
+            },
+
+
+            /********** 分页相关 **********/
+
+            onPaginationChange(data) {
+                this.paginationData = data;
+            },
+        },
+
+        components: {
+            pagination
         }
     }
 </script>
@@ -132,9 +262,8 @@
 <style lang="sass">
 
     .v-table
-        box-sizing: content-box;
-        border: 1px solid #e0e0e0;
-        border-bottom: 2px solid #9e9e9e;
+        @extend %flex-inner
+        box-sizing: content-box
 
         *,
         *:before,
@@ -148,7 +277,14 @@
         *:focus
             outline: 0 !important;
 
+        &__wrap
+            display: flex
+            flex-direction: column
+            border: 1px solid #e0e0e0
+
         &__thead
+            @extend %flex-inner
+
             &__tr
                 display: flex
                 position: relative
@@ -190,7 +326,6 @@
                         flex: 0 0 10px
                         cursor: col-resize;
                         user-select: none;
-                        outline: 1px solid red
 
                     &-content
                         @extend %text-ellipsis
@@ -198,6 +333,8 @@
                         color: #757575
 
         &__tbody
+            @extend %flex-inner
+
             &__tr
                 display: flex
                 position: relative
@@ -214,6 +351,8 @@
                         border-right: none
 
         &__tfooter
+            @extend %flex-inner
+
             &__tr
                 display: flex
                 position: relative
@@ -229,21 +368,30 @@
                         border-right: none
 
         &__tpagination
-            display: flex
-            align-items: center
-            justify-content: center;
+            @extend %flex-center
 
             button
+                cursor: pointer
                 background-color: transparent
                 border: none
+                padding: 0 5px
+
+                &.disable
+                    cursor: default
+                    color: #bdbdbd
+                &.active
+                    color: #9ccc65
 
             ul
                 margin: 0
                 padding: 0
+                display: flex
+                align-items: center
 
                 li
                     padding: 0
                     list-style: none
+
 
     %text-ellipsis
         display: block;
@@ -260,4 +408,9 @@
         display: flex;
         justify-content: center;
         align-items: center;
+
+    %flex-inner
+        display: inline-flex
+        flex-direction: column
+
 </style>
